@@ -1,39 +1,10 @@
 <script setup>
 import { ref } from "vue";
+import { categorias } from "../helpers";
 import cerrarModal from '../assets/img/cerrar.svg'; 
 import Alerta from "./Alerta.vue";
 const error = ref('');
-const emit = defineEmits(['ocultar-modal','update:nombre','update:cantidad','update:categoria','guardar-gasto']);
-const categorias = [
-    {
-        id: 'ahorro',
-        nombre: 'Ahorro'
-    },
-    {
-        id: 'comida',
-        nombre: 'Comida'
-    },
-    {
-        id: 'casa',
-        nombre: 'Casa'
-    },
-    {
-        id: 'gastosVarios',
-        nombre: 'Gastos Varios'
-    },
-    {
-        id: 'ocio',
-        nombre: 'Ocio'
-    },
-    {
-        id: 'salud',
-        nombre: 'Salud'
-    },
-    {
-        id: 'subscriopciones',
-        nombre: 'Subscriopciones'
-    },
-];
+const emit = defineEmits(['ocultar-modal','update:nombre','update:cantidad','update:categoria','guardar-gasto', 'eliminar-gasto']);
 const props = defineProps({
     modal: {
         type: Object,
@@ -51,6 +22,14 @@ const props = defineProps({
         type: String,
         required: true
     },
+    disponible: {
+        type: Number,
+        required: true
+    },
+    id: {
+        type: [String, null],
+        required: true
+    },
 })
 const showAlerta = (mensaje) => {
     error.value = mensaje;
@@ -58,15 +37,25 @@ const showAlerta = (mensaje) => {
         error.value = '';
     }, 1500);
 }
+const old = props.cantidad;
 
 const agregarGasto = () => {
-    const { cantidad, categoria, nombre } = props;
+    const { cantidad, categoria, nombre, disponible, id } = props;
     if([nombre, cantidad, categoria].includes('')){
         showAlerta('Todos los campos son obligatorios');
         return;
     }
     if(cantidad <= 0){
         showAlerta('Cantidad no valida');
+        return;
+    }
+    if (id) {
+        if ((disponible + old) < cantidad) {
+            showAlerta('El monto disponible es '+ (disponible + old));
+            return;
+        }
+    }else if (disponible < cantidad) {
+        showAlerta('El monto disponible es ' + disponible);
         return;
     }
     emit('guardar-gasto');
@@ -99,7 +88,8 @@ const agregarGasto = () => {
                     <option v-for="categoria in categorias" :key="categoria.id" :value="categoria.id">{{categoria.nombre}}</option>                    
                 </select>
             </div>
-            <input type="submit" id="submit" value="Añadir gasto" @click.prevent="agregarGasto">
+            <input type="submit" id="submit" :value="id ? 'Modificar gasto':'Añadir gasto'" @click.prevent="agregarGasto">
+            <input type="submit" id="submit" v-if="id" value="Eliminar gasto" @click.prevent="$emit('eliminar-gasto')">
         </form>
     </div>
   </div>
